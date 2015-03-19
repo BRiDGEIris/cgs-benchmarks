@@ -4,4 +4,4 @@ Description of the benchmarking studies peformed in this CGS system. This module
 ## Tools
 
 ### database-generation
-Super-optimized script using the files provided by the [Exome Aggregation Consortium](http://exac.broadinstitute.org/) to generate vcf files from the main vcf file available [here](ftp://ftp.broadinstitute.org/pub/ExAC_release/release0.3/). The script allows to create one vcf by sample or one vcf for all samples. The user can decide how many samples he wants to be generated. Code will obviously be faster if you decide to put all samples in one vcf file, as the main bottleneck is the speed of writing data to your disk.
+Super-optimized script using the files provided by the [Exome Aggregation Consortium](http://exac.broadinstitute.org/) to generate vcf files from the main vcf file available [here](http://exac.broadinstitute.org/downloads). The script allows to create one vcf by sample or one vcf for all samples. The user can decide how many samples he wants to be generated. Code will obviously be faster if you decide to put all samples in one vcf file, as the main bottleneck is the speed of writing data to your disk.
