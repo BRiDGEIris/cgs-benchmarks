@@ -3,7 +3,7 @@ import org.apache.commons.lang3.StringUtils;
 
 public class Main {
 	public static int THREADS = 5;
-	public static int SAMPLES = 1;
+	public static int SAMPLES = 1000;
 	public static boolean ONE_BIG_FILE = true;//Indicates if we create only one big file at the output, or 1 file/sample
 	
 	public static String origin = "../../Public_Database/Public_Database_v3";

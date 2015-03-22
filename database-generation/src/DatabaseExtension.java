@@ -221,6 +221,8 @@ public class DatabaseExtension {
 	 */
 	private void generateFirstLine(String line) {
 		
+		line += "\tFORMAT";
+		
 		//String.format() is very slow but it's just for 1 line.
 		for(int i=1; i <= Main.SAMPLES; i++)
 			line += "\tNA"+String.format("%05d", i);
