@@ -3,7 +3,7 @@ import org.apache.commons.lang3.StringUtils;
 
 public class Main {
 	public static int THREADS = 5;
-	public static int SAMPLES = 1000;
+	public static int SAMPLES = 10;
 	public static boolean ONE_BIG_FILE = true;//Indicates if we create only one big file at the output, or 1 file/sample
 	
 	public static String origin = "../../Public_Database/Public_Database_v3";
@@ -25,7 +25,9 @@ public class Main {
 		if(ONE_BIG_FILE == false) {
 			MAX_FILES = SAMPLES;
 			SAMPLES = 1;
-		}			
+		} else {
+			destination += ".vcf";
+		}
 
 		//Main.stringSplit();
 		//Main.stringConcatenation();
@@ -50,7 +52,7 @@ public class Main {
 		
 		databaseExtension.displayExecutionTime();
 	}
-	
+		
 	public static void stringConcatenation() {
 		String[] tab = new String[20000000];
 		String[] tb = new String[tab.length];
@@ -126,7 +128,7 @@ public class Main {
 		for(i=0; i < lines; i++)
 			for(j=0; j < samples; j++)
 				tmp = line.split("	");
-		System.out.println("Method 1a: Total time for "+lines+" iterations: "+((System.currentTimeMillis()-start)/1000.0)+"s.");	
+		System.out.println("Method 1a: Total time for "+String.valueOf(lines)+" iterations: "+((System.currentTimeMillis()-start)/1000.0)+"s.");	
 		
 		start = System.currentTimeMillis();
 		for(i=0; i < lines; i++) {
@@ -136,7 +138,7 @@ public class Main {
 				afValue = tmp[0];
 			}
 		}
-		System.out.println("Method 2a: Total time for "+lines+" iterations: "+((System.currentTimeMillis()-start)/1000.0)+"s.");	
+		System.out.println("Method 2a: Total time for "+String.valueOf(lines)+" iterations: "+((System.currentTimeMillis()-start)/1000.0)+"s.");	
 			
 		start = System.currentTimeMillis();
 		for(i=0; i < lines; i++) {
@@ -146,7 +148,7 @@ public class Main {
 				afValue = line.substring(startIndex, endIndex);
 			}
 		}
-		System.out.println("Method 2b: Total time for "+lines+" iterations: "+((System.currentTimeMillis()-start)/1000.0)+"s.");	
+		System.out.println("Method 2b: Total time for "+String.valueOf(lines)+" iterations: "+((System.currentTimeMillis()-start)/1000.0)+"s.");	
 	}
 	
 	/**

@@ -69,6 +69,16 @@ public class FilePart implements Runnable {
 		// We take some information from the INFO field. We need to count the quantity of ALT
 		currentAlt = elements[4].split(",");
 		altQuantity = currentAlt.length;
+		
+		//As it seems Highlander does not like lines with ALT/REF where an allele is more than one letter, we need to check that
+		String tmpRef[] = elements[3].split(",");
+		for(i=0; i < tmpRef.length; i++)
+			if(tmpRef[i].length() > 1)
+				return "";
+		for(i=0; i < currentAlt.length; i++)
+			if(currentAlt[i].length() > 1)
+				return "";
+		
 
 		//We need AN_Adj as the variants where not computed on all 60000 samples each time
 		previousIndex = elements[7].indexOf("AN_Adj=") + 7;
