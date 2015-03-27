@@ -1,9 +1,11 @@
+import java.io.File;
+
 import org.apache.commons.lang3.StringUtils;
 
 
 public class Main {
 	public static int THREADS = 5;
-	public static int SAMPLES = 10;
+	public static int SAMPLES = 1000;
 	public static boolean ONE_BIG_FILE = true;//Indicates if we create only one big file at the output, or 1 file/sample
 	
 	public static String origin = "../../Public_Database/Public_Database_v3";
@@ -18,9 +20,97 @@ public class Main {
 	
 	public static void main(String[] args) {
 
+		//Main.stringSplit();
+		//Main.stringConcatenation();
+		//System.exit(0);
+		
+		//We analyze the received parameters
+		if(args.length != 5*2) {
+			System.err.println("Invalid number of parameters. You have to give --o [path-to-database] --d [path-to-future-vcf] --s [number-of-samples] --f [boolean-big-file-or-small-files] --t [number-of-threads]");
+			System.exit(0);
+		} else {
+			boolean error = false;
+			int differentArguments = 0;
+			
+			//We check each parameter
+			try {
+				for(int i=0; i < args.length; i += 2) {
+					if("--o".equals(args[i])) {
+						
+						if(!new File(args[i+1]).exists()) {
+							System.err.println("Invalid path to database given. File not found");
+							error = true;
+						} else {
+							origin = args[i+1];
+						}		
+						differentArguments++;
+						
+					} else if("--d".equals(args[i])) {
+						
+						destination = args[i+1];
+						differentArguments++;
+						
+					} else if("--s".equals(args[i])) {
+						try {
+							Main.SAMPLES = Integer.valueOf(args[i+1]);
+						} catch (Exception e) {
+							System.err.println("Invalid number of samples to generate.");
+							error = true;
+						}
+						
+						if(Main.SAMPLES <= 0) {
+							System.err.println("Invalid number of samples to generate.");	
+							error = true;
+						} else if(Main.SAMPLES > 10000) {
+							System.out.println("You have asked to generate a vcf for "+String.valueOf(Main.SAMPLES)+" samples. I hope for you that you have enough space to save it...");
+						}
+						
+						differentArguments++;
+					} else if("--f".equals(args[i])) {
+						if("1".equals(args[i+1]) || "true".equals(args[i+1].toLowerCase())) {
+							Main.ONE_BIG_FILE = true;
+						} else if("0".equals(args[i+1]) || "false".equals(args[i+1].toLowerCase())) {
+							Main.ONE_BIG_FILE = false;
+						} else {
+							System.out.println("The parameter --f is asking for a boolean so, you have to give (1, true, 0 or false)");
+							error = true;
+						}
+						
+						differentArguments++;
+					} else if("--t".equals(args[i])) {
+						try {
+							Main.THREADS = Integer.valueOf(args[i+1]);
+						} catch (Exception e) {
+							System.err.println("Invalid number of threads to use.");
+							error = true;
+						}
+						
+						if(Main.THREADS <= 0) {
+							System.err.println("Invalid number of threads to use.");	
+							error = true;
+						} else if(Main.THREADS >= 100) {
+							System.out.println("You have asked to use "+String.valueOf(Main.THREADS)+" threads... Are you crazy or do you come from the future? Nevermind, do as you please...");
+						}
+						
+						differentArguments++;
+					}
+				}
+			} catch (Exception e) {
+				System.err.println("Invalid parameters. You have to give --o [path-to-database] --d [path-to-future-vcf] --s [number-of-samples] --f [boolean-big-file-or-small-files] --t [number-of-threads]");
+				System.out.println(e.toString());
+				System.exit(0);
+			}
+			
+			if(error || differentArguments != 5) {
+				System.err.println("Invalid parameters. You have to give --o [path-to-database] --d [path-to-future-vcf] --s [number-of-samples] --f [boolean-big-file-or-small-files] --t [number-of-threads]");
+				System.exit(0);
+			}
+		}
+
 		//We compute the number of lines each thread can use, based on the average length size
 		int averageLength = 2*1024 + Main.SAMPLES * 14;
 		Main.LINES_BY_THREAD = (int)(0.1*(Runtime.getRuntime().freeMemory()/(Main.THREADS * averageLength)));		
+		destination += "_s"+String.valueOf(Main.SAMPLES);
 		
 		if(ONE_BIG_FILE == false) {
 			MAX_FILES = SAMPLES;
@@ -29,19 +119,8 @@ public class Main {
 			destination += ".vcf";
 		}
 
-		//Main.stringSplit();
-		//Main.stringConcatenation();
-		//System.exit(0);
-		
-		if(args.length < 2 && (Main.origin.isEmpty() || Main.destination.isEmpty())) {
-			System.err.println("Please, set the origine and destination file.");
-			System.exit(0);
-		} else if(args.length == 2) {
-			origin = args[0];
-			destination = args[1];
-		}
-
 		//We launch the job
+		System.out.println("We launch the job, please be patient...");
 		DatabaseExtension databaseExtension = new DatabaseExtension();
 		boolean res = databaseExtension.doJob();
 		
@@ -71,7 +150,7 @@ public class Main {
 		start = System.currentTimeMillis();
 		Main.XORShift64Init(System.nanoTime());
 		for(i=0; i < 100000000; i++)
-			Main.random01();
+			Main.random01();// Interesting to notice: xorshift is 10x faster than random() on my i7 2.8GHz, but slower than random() on a i5 3.5GHz... 
 		System.out.println("Method 0b (xorshift random): Total time for 100 000 000 iterations: "+((System.currentTimeMillis()-start)/1000.0)+"s.");
 		
 		start = System.currentTimeMillis();
