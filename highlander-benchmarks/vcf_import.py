@@ -71,17 +71,19 @@ def jarExecution(*args):
 
 def checkIfSampleDone(sample_name):
     # Check if a sample is already done or not
-    samples = [line.strip() for line in open('samples_done.sv')]
+    samples = [line.strip() for line in open('samples_done.txt')]
     found = False
+    sample_name = str(sample_name)
     for sample in samples:
-        if sample_name == sample:
+        if sample and sample_name == sample:
             found = True
             break
     return found
 
 def sampleIsDone(sample_name):
-    with open('samples_done.sv', 'a') as file:
-        file.write(sample_name+'\n')
+    if os.path.isfile('samples_done.txt'):
+        with open('samples_done.txt', 'a') as file:
+            file.write(str(sample_name)+'\r\n')
     
 skipped_files = 0
 starting_sample = 100
@@ -91,8 +93,8 @@ for analyse in analyses:
     max_vcf_step = 3# TODO enlever cette ligne après la fin des tests
     for first_sample in xrange(1, analyse[1], max_vcf_step):    
     
-        if checkIfSampleDone(starting_sample + i):
-            print("Samples ["+str(starting_sample+first_sample)+"; "+str(starting_sample+first_sample+max_vcf_step)+"] already done, we go to the next interval.")
+        if checkIfSampleDone(starting_sample + first_sample) and checkIfSampleDone(starting_sample + first_sample + max_vcf_step - 1):
+            print("Samples ["+str(starting_sample+first_sample)+"; "+str(starting_sample+first_sample+max_vcf_step - 1)+"] already done, we go to the next interval.")
             continue
         
         print("2. Generate random vcf files for the analysis "+analyse[0]+": "+str(max_vcf_step)+" out of "+str(analyse[1])+" vcf.")
