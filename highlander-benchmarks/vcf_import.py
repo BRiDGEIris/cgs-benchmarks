@@ -1,5 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
+
 import os
 import urllib 
 import zlib
@@ -8,6 +9,7 @@ import math
 import sys
 from subprocess import *
 import subprocess
+
 # This script will:
 # 1. Download the public database from the broad institute
 # 2. Generate random vcf files thanks to the previous file thanks to databaseExpansion.jar
@@ -21,12 +23,13 @@ vcf_generation_jar_path = "dbgeneration.jar"
 db_builder_path = "dbBuilder_fast2.jar"
 vcf_destination_path = "data/"
 ram_max = 2 # Number of Go the different jar can use
-disk_max = 50 # Number of Go we can use to store the generated vcf files
+disk_max = 20 # Number of Go we can use to store the generated vcf files
 threads_max = 5 # Number of threads allowed to do the vcf generation
 
 # Configuration specific to the files to generate. 1 sample ~= 30Mo. Small: 5Go, medium: 50Go, big: 250Go, huge: 750Go
 analyses = [('small', math.floor(5*1024.0/30),'10_2015_04_01_benchmark_small'), ('medium',math.floor(50*1024.0/30),'11_2015_04_01_benchmark_medium'),('big',math.floor(250*1024.0/30),'12_2015_04_01_benchmark_big'),('huge',math.floor(750*1024.0/30),'13_2015_04_01_benchmark_huge')]
-analyses = [('small', 10, '10_2015_04_01_benchmark_small')]#, ('medium', 1706),('big', 8533),('huge',25600)]
+analyses = [('small', 170,'10_2015_04_01_benchmark_small'), ('medium', 1706,'11_2015_04_01_benchmark_medium'),('big',8533,'12_2015_04_01_benchmark_big'),('huge',25600,'13_2015_04_01_benchmark_huge')]
+#analyses = [('small', 10, '10_2015_04_01_benchmark_small')]#, ('medium', 1706),('big', 8533),('huge',25600)]
 #small: 170, medium: 1 706, big: 8 533, huge: 25 600
 
 # If a problem occured during a previous execution...
@@ -43,7 +46,7 @@ if os.path.isfile(public_database_path+".gz") or os.path.isfile(public_database_
     print("1. Public database from broad institute found, great!")
 else:
     try:
-        print("1.1. Public database from broad institute not found locally, we will download it, be patient... (Please, check if the file is created and its size increasing," +
+        print("1.1. Public database from broad institute not found locally, we will download it, be patient... (Please, check if the file is created and its size increasing," \
                 +" otherwise remove spaces and stuff like that in the path")
         urllib.urlretrieve(public_database_link, public_database_path+".gz")      
     except Exception as e: 
@@ -90,9 +93,9 @@ starting_sample = 100
 for analyse in analyses:
     # We create an appropriate number of files by step
     max_vcf_step = min(analyse[1], (disk_max*1024)/150) 
-    max_vcf_step = 3# TODO enlever cette ligne après la fin des tests
     for first_sample in xrange(1, analyse[1], max_vcf_step):    
-    
+    	max_vcf_step = min(max_vcf_step, analyse[1] - first_sample)
+
         if checkIfSampleDone(starting_sample + first_sample) and checkIfSampleDone(starting_sample + first_sample + max_vcf_step - 1):
             print("Samples ["+str(starting_sample+first_sample)+"; "+str(starting_sample+first_sample+max_vcf_step - 1)+"] already done, we go to the next interval.")
             continue
@@ -106,21 +109,22 @@ for analyse in analyses:
             print("2. A problem occured during the vcf generation...")
             print(e)
             sys.exit(0)
-            
+          
         # 3. Import the vcf files generated to highlander thanks to dbBuilder.jar (made by Raphaël Helaers)
         print("3. Importing the different samples")
         error = 0            
         for i in xrange(first_sample, first_sample+max_vcf_step):            
+            path_to_file = vcf_destination_path+"r_"+analyse[0]+"_s"+str(max_vcf_step)+"_"+str(starting_sample + first_sample)+"."+str(i-first_sample)
+            
             if checkIfSampleDone(starting_sample + i):
                 print("Sample "+str(starting_sample+i)+" already done, we go to the next one.")
-                #os.remove(path_to_file)    
+                os.remove(path_to_file)    
                 continue
             
             if os.path.isfile("sql/lock"):
                 os.remove("sql/lock")
                         
             result = False
-            path_to_file = vcf_destination_path+"r_"+analyse[0]+"_s"+str(max_vcf_step)+"_"+str(starting_sample + first_sample)+"."+str(i-first_sample)
             args = [''+db_builder_path+'', "--tool", "variants", "--sample", "NA"+str(starting_sample + i).zfill(5), "--project", analyse[2], "--analysis", analyse[0], "--vcfpath", ''+path_to_file+'']
             try: 
                 jarExecution(*args)
@@ -142,14 +146,14 @@ for analyse in analyses:
                 sampleIsDone(starting_sample + i)
         
             # 4. Delete the current file just used as we will not use it again anymore
-            print("Delete the file...")
-            #os.remove(path_to_file)    
-    starting_sample += analyse[1]
+            if os.path.isfile(path_to_file):
+                print("Delete the file...")
+                os.remove(path_to_file)    
+    starting_sample += analyse[1] + 1
     
 if skipped_files < 20:
     print("----> It seems the import is done, with "+str(skipped_files)+" sample(s) skipped. Thank you.")
 else:
     print("----> It seems the import is done, but there were "+str(skipped_files)+" sample(s) skipped... Thank you anyway.")
-
 
 
