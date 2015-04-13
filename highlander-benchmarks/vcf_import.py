@@ -26,11 +26,8 @@ ram_max = 2 # Number of Go the different jar can use
 disk_max = 20 # Number of Go we can use to store the generated vcf files
 threads_max = 5 # Number of threads allowed to do the vcf generation
 
-# Configuration specific to the files to generate. 1 sample ~= 30Mo. Small: 5Go, medium: 50Go, big: 250Go, huge: 750Go
-analyses = [('small', math.floor(5*1024.0/30),'10_2015_04_01_benchmark_small'), ('medium',math.floor(50*1024.0/30),'11_2015_04_01_benchmark_medium'),('big',math.floor(250*1024.0/30),'12_2015_04_01_benchmark_big'),('huge',math.floor(750*1024.0/30),'13_2015_04_01_benchmark_huge')]
-analyses = [('small', 170,'10_2015_04_01_benchmark_small'), ('medium', 1706,'11_2015_04_01_benchmark_medium'),('big',8533,'12_2015_04_01_benchmark_big'),('huge',25600,'13_2015_04_01_benchmark_huge')]
-#analyses = [('small', 10, '10_2015_04_01_benchmark_small')]#, ('medium', 1706),('big', 8533),('huge',25600)]
-#small: 170, medium: 1 706, big: 8 533, huge: 25 600
+# Configuration specific to the files to generate.
+analyses = [('small', 200,'20_2015_04_01_benchmarks_small'), ('medium', 1000,'21_2015_04_01_benchmarks_medium'),('big',5000,'22_2015_04_01_benchmarks_big'),('huge',25000,'23_2015_04_01_benchmarks_huge')]
 
 # If a problem occured during a previous execution...
 if os.path.isfile(public_database_path+".gz") and abs(os.path.getsize(public_database_path+".gz") - 3176043421) > 100*1024:
@@ -93,6 +90,7 @@ starting_sample = 100
 for analyse in analyses:
     # We create an appropriate number of files by step
     max_vcf_step = min(analyse[1], (disk_max*1024)/150) 
+    max_vcf_step = 3
     for first_sample in xrange(1, analyse[1], max_vcf_step):    
     	max_vcf_step = min(max_vcf_step, analyse[1] - first_sample)
 
