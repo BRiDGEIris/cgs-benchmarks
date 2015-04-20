@@ -24,7 +24,7 @@ from multiprocessing import Process, Manager
 # Because the current dbBuilder.tojson does not give as much information as we would like for the benchmarks, that's all.
 
 # Configuration for the user
-current_server_url = ''
+current_server_url = 'http://62.210.254.52'
 initial_file_path = 'R:/Travail/ULB/MA2/Cours/[MEMO-H504] Mémoire/cgs/cgs-benchmarks/hbase-benchmarks/hbase_upload_NA00101_small.tsv.gz'
 server_directory = '/var/www/html/cgs-41gre4gre4htrhtrthtjhty'    
 server_directory = 'data'    
