@@ -31,19 +31,19 @@ from multiprocessing import Process, Manager
 highlander_host = "highlander.usr.hydra.vub.ac.be"
 highlander_host = "172.31.244.166"
 highlander_database = "Iridia"
-highlander_user = ""
-highlander_password = ""
+highlander_user = "iridia"
+highlander_password = "iri.2742"
 
 local_host = "127.0.0.1"
 local_database = "highlander_chromosomes"
-local_user = ""
-local_password = ""
+local_user = "root"
+local_password = "Olgfe65grgr"
 
-current_server_url = ''
+current_server_url = 'http://62.210.254.52'
 
-cluster_url = ''
+cluster_url = 'http://insilicodb.ulb.ac.be:8888'
 querySession = requests.Session()
-info = {'username':'','password':''}
+info = {'username':'gdegols','password':'z9FNeTrQJYaemAtyUVva'}
 r = querySession.post(cluster_url+'/accounts/login/',data=info)
 
 target_database = "hbase" # "hbase" or "impala_text"
