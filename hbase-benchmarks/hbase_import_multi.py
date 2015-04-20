@@ -16,6 +16,7 @@ import requests
 import random
 from subprocess import *
 import subprocess
+import threading
 import MySQLdb # See http://stackoverflow.com/questions/372885/how-do-i-connect-to-a-mysql-database-in-python
 import MySQLdb.cursors
 
@@ -27,19 +28,19 @@ import MySQLdb.cursors
 # Configuration for the user
 highlander_host = "highlander.usr.hydra.vub.ac.be"
 highlander_database = "Iridia"
-highlander_user = "iridia"
-highlander_password = "iri.2742"
+highlander_user = ""
+highlander_password = ""
 
 local_host = "127.0.0.1"
 local_database = "highlander_chromosomes"
-local_user = "root"
-local_password = "Olgfe65grgr"
+local_user = ""
+local_password = ""
 
-current_server_url = 'http://62.210.254.52'
+current_server_url = ''
 
-cluster_url = 'http://insilicodb.ulb.ac.be:8888'
+cluster_url = ''
 querySession = requests.Session()
-info = {'username':'gdegols','password':'z9FNeTrQJYaemAtyUVva'}
+info = {'username':'','password':''}
 r = querySession.post(cluster_url+'/accounts/login/',data=info)
 
 target_database = "hbase" # "hbase" or "impala_text"
@@ -256,6 +257,54 @@ def saveForLater(cur, patient, benchmark_table):
     
     return True
 
+class patientToTSV(threading.Thread):
+    m_patient = None
+    m_f = None
+    m_benchmark_table = None
+    
+    def setPatient(self, patient):
+        self.m_patient = patient
+            
+    def setF(self, f):
+        self.m_f = f
+        
+    def setBenchmarkTable(self, benchmark_table):
+        self.m_benchmark_table = benchmark_table
+        
+    def run(self):
+        patient = self.m_patient
+        f = self.m_f
+        benchmark_table = self.m_benchmark_table
+        
+        st = time.time()
+        connexion = MySQLdb.connect(host= highlander_host, user=highlander_user, passwd=highlander_password,db=highlander_database, cursorclass=MySQLdb.cursors.DictCursor, compress=False)
+        cur = connexion.cursor()
+        
+        t = patient+": Downloading data. "
+        st = time.time()
+        cur.execute("SELECT * FROM "+benchmark_table+" WHERE patient = '"+patient+"' ORDER BY id") # 15s
+        print(t+ "Time: "+str(round(time.time()-st,2))+"s.")
+        
+        if cur.rowcount < 40000:
+            print(patient+": Probably incomplete data found (rows = "+str(cur.rowcount)+" < 40 000), we stop here.")
+            return False
+        data = cur.fetchall()
+        cur.close()
+        
+        # We convert the variants to a tsv text        
+        t = patient+": Converting data ("+str(cur.rowcount)+" lines). "
+        st = time.time()
+        variants = totsvForBenchmarks(data, patient)        
+        print(t+"Time: "+str(round(time.time()-st,2))+"s.")
+                
+        # We save the file to the current web server
+        print(patient+": Saving (compressed) tsv data. "),
+        st = time.time()    
+        f.write(variants)           
+        print("Time: "+str(round(time.time()-st,2))+"s.")
+        
+        connexion.close()
+        
 # This function should be only use for benchmarks purposes as we don't use json anymore
 def saveToTSV(cur, sample, last_sample, benchmark_table):
     
@@ -266,30 +315,60 @@ def saveToTSV(cur, sample, last_sample, benchmark_table):
     patient = 'NA'+(str(sample).zfill(5))
     f = gzip.open(server_directory+'/hbase_upload_'+str(patient)+'_'+benchmark_table+'.tsv.gz', 'wb')
     
+    threads = []    
+    max_threads = 4
+    st_init = time.time()
     for sample in xrange(sample, last_sample):    
         patient = 'NA'+(str(sample).zfill(5))
         
-        # We download the variants for the given patient
-        print(patient+": Downloading data."),
-        st = time.time()
-        cur.execute("SELECT * FROM "+benchmark_table+" WHERE patient = '"+patient+"' ORDER BY id") # 15s
-        print("Time: "+str(round(time.time()-st,2))+"s.")
+        if True:
+            if len(threads) == 0:
+                st_init = time.time()
+                
+            t = patientToTSV()
+            t.setDaemon(True)
+            t.setF(f)
+            t.setBenchmarkTable(benchmark_table)
+            t.setPatient(patient)
+            
+            t.start()
+            threads.append(t)
+            
+            if len(threads) >= max_threads:
+                for t in threads:
+                    t.join()
+                print(str(max_threads)+" samples done in "+str(time.time()-st_init)+"s")
+                st_init = time.time()
+                threads = []
+        else:
+            # We download the variants for the given patient
+            print(patient+": Downloading data."),
+            st = time.time()
+            cur.execute("SELECT * FROM "+benchmark_table+" WHERE patient = '"+patient+"' ORDER BY id") # 15s
+            print("Time: "+str(round(time.time()-st,2))+"s.")
+            
+            if cur.rowcount < 40000:
+                print(patient+": Probably incomplete data found (rows = "+str(cur.rowcount)+" < 40 000), we stop here.")
+                return False
+            
+            # We convert the variants to a tsv text
+            print(patient+": Converting data ("+str(cur.rowcount)+" lines)."),
+            st = time.time()
+            variants = totsvForBenchmarks(cur.fetchall(), patient)        
+            print("Time: "+str(round(time.time()-st,2))+"s.")
+               
+            # We save the file to the current web server
+            print(patient+": Saving (compressed) tsv data. "),
+            st = time.time()    
+            f.write(variants)           
+            print("Time: "+str(round(time.time()-st,2))+"s.")
         
-        if cur.rowcount < 40000:
-            print(patient+": Probably incomplete data found (rows = "+str(cur.rowcount)+" < 40 000), we stop here.")
-            return False
-        
-        # We convert the variants to a tsv text
-        print(patient+": Converting data ("+str(cur.rowcount)+" lines)."),
-        st = time.time()
-        variants = totsvForBenchmarks(cur.fetchall(), patient)        
-        print("Time: "+str(round(time.time()-st,2))+"s.")
-           
-        # We save the file to the current web server
-        print(patient+": Saving (compressed) tsv data. "),
-        st = time.time()    
-        f.write(variants)           
-        print("Time: "+str(round(time.time()-st,2))+"s.")
+    if len(threads) >= 1:
+        for t in threads:
+            t.join()
+        print(str(max_threads)+" samples done in "+str(time.time()-st_init)+"s")
+        st_init = time.time()
+        threads = []
         
     f.close() 
     
